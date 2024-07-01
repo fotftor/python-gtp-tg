@@ -1,68 +1,60 @@
 import asyncio
-import os
-
-from aiogram import Router, F, Bot, Dispatcher
+import config
+import aiogram
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.filters.command import Command
+from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import (
-    CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, Message,
-)
-
-router = Router()
-
-STEP1_EXTEND_CB = "extend"
-STEP1_COLLAPSE_CB = "collapse"
-STEP1_SETTINGS_CB = "settings"
-
-ADDITIONAL_TEXT = "Here is some additional text, which is visible only in extended mode"
+from aiogram.types import KeyboardButton, ReplyKeyboardMarkup,Message
+from aiogram import html
+import string,random
+from openai import OpenAI
+import openai
 
 
-@router.message(CommandStart())
-async def step1(message: Message):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="[ ] Extended mode",
-                             callback_data=STEP1_EXTEND_CB),
-        InlineKeyboardButton(text="Settings", callback_data=STEP1_SETTINGS_CB),
-    ]])
-    await message.answer(
-        f"Hello, {message.from_user.username}. \n\n"
-        "Extended mode is off.",
-        reply_markup=keyboard,
-    )
+logging.basicConfig(level=logging.INFO)
+dp = Dispatcher()
+bot = Bot('your_tg_key')
+messages = []
+
+class tg:
+
+    @dp.message(Command("start"))
+    async def cmd_start(message: types.Message):
+        await message.answer(
+            f"Hello, {html.bold(html.quote(message.from_user.full_name))}",
+            parse_mode=ParseMode.HTML
+        )
+        keyboard = ReplyKeyboardMarkup(
+            resize_keyboard=True,
+            one_time_keyboard=True,
+            input_field_placeholder="Воспользуйтесь меню:")
+        button_1 = KeyboardButton("генерация пароля")
+        keyboard.add(button_1)
+
+    @dp.message()
+    async def gen_gpt(message: types.Message):
+        global messages
+        messages.append({"role": 'user', "content": message.text})
+        try:
+            client = openai.OpenAI(
+                api_key='you_api',
+                base_url="https://api.proxyapi.ru/openai/v1")
+            chat_completion = client.chat.completions.create(model="gpt-4o-2024-05-13",
+                                                             messages=[{"role": "user", "content": message.text}])
+            response = chat_completion.choices[0].message.content
+            await message.answer(response)
+            messages.append({"role": 'assistant', "content": response})
+        except Exception as e:
+            logging.error(f"Error: {e}")
+            await message.answer("Error occurred. Please try again later.")
+    # Запуск процесса поллинга новых апдейтов
+    async def main(self):
+        await dp.start_polling(bot)
 
 
-@router.callback_query(F.data == STEP1_EXTEND_CB)
-async def step1_check(callback: CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="[x] Extended mode",
-                             callback_data=STEP1_COLLAPSE_CB),
-        InlineKeyboardButton(text="Settings", callback_data=STEP1_SETTINGS_CB),
-    ]])
-    await callback.message.edit_text(
-        f"Hello, {callback.from_user.username}. \n\n"
-        "Extended mode is on.\n\n" + ADDITIONAL_TEXT,
-        reply_markup=keyboard,
-    )
 
-
-@router.callback_query(F.data == STEP1_COLLAPSE_CB)
-async def step1_uncheck(callback: CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-        InlineKeyboardButton(text="[ ] Extended mode",
-                             callback_data=STEP1_EXTEND_CB),
-        InlineKeyboardButton(text="Settings", callback_data=STEP1_SETTINGS_CB),
-    ]])
-    await callback.message.edit_text(
-        f"Hello, {callback.from_user.username}. \n\n"
-        "Extended mode is off.",
-        reply_markup=keyboard,
-    )
-
-
-async def main():
-    bot = Bot(token=os.getenv('6739658967:AAGYbweREeDh_vCzhyFZtAHryFTMPCwpAn0'))
-    dp = Dispatcher()
-    dp.include_router(router)
-    await dp.start_polling(bot)
-
-
-asyncio.run(main())
+if __name__ == "__main__":
+    tg_bot=tg()
+    asyncio.run(tg_bot.main())
