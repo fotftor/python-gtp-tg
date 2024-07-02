@@ -15,7 +15,7 @@ import openai
 
 logging.basicConfig(level=logging.INFO)
 dp = Dispatcher()
-bot = Bot('your_tg_key')
+bot = Bot(config.token)
 messages = []
 
 class tg:
@@ -37,7 +37,7 @@ class tg:
         messages.append({"role": 'user', "content": message.text})
         try:
             client = openai.OpenAI(
-                api_key='you_api',
+                api_key=config.api_den,
                 base_url="https://api.proxyapi.ru/openai/v1")
             chat_completion = client.chat.completions.create(model="gpt-4o-2024-05-13",
                                                              messages=[{"role": "user", "content": message.text}])
