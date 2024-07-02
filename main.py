@@ -23,9 +23,7 @@ class tg:
     @dp.message(Command("start"))
     async def cmd_start(message: types.Message):
         await message.answer(
-            f"Hello, {html.bold(html.quote(message.from_user.full_name))}",
-            parse_mode=ParseMode.HTML
-        )
+            f"Hello")
         keyboard = ReplyKeyboardMarkup(
             resize_keyboard=True,
             one_time_keyboard=True,
