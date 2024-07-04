@@ -1,2 +1,0 @@
-token=''
-api_den=''
